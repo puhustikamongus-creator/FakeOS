@@ -1,4 +1,10 @@
-// js/system.js - Обновленная версия с Drag & Drop и Resize
+// js/system.js - Финальная версия (Core, IndexedDB, Drag, Resize, Win Key)
+
+/**
+ * =================================================================
+ * 1. IndexedDB: Файловая система (IDBFileSystem)
+ * =================================================================
+ */
 const DB_NAME = 'Win11FS';
 const STORE_NAME = 'Files';
 let db;
@@ -34,10 +40,6 @@ function getTransaction(mode = 'readonly') {
     return db.transaction([STORE_NAME], mode).objectStore(STORE_NAME);
 }
 
-// =======================
-// ФАЙЛОВАЯ СИСТЕМА (IndexedDB)
-// =======================
-
 async function initFileSystem() {
     await openDB();
 
@@ -50,11 +52,9 @@ async function initFileSystem() {
             const writeStore = getTransaction('readwrite');
             
             const initialFolders = [
-                // Корневые папки (parentPath: '/')
                 { name: 'Рабочий стол', type: 'folder', path: '/', parentPath: '/', isDeleted: false, icon: 'fas fa-desktop' },
                 { name: 'Документы', type: 'folder', path: '/', parentPath: '/', isDeleted: false, icon: 'fas fa-file' },
                 { name: 'Корзина', type: 'system', path: '/', parentPath: '/', isDeleted: false, icon: 'fas fa-trash' }, 
-                // Файлы на рабочем столе
                 { name: 'Мой Файл.txt', type: 'file', path: '/Рабочий стол', parentPath: '/Рабочий стол', content: 'Привет, это WebOS!', isDeleted: false, icon: 'fas fa-file-alt' },
                 { name: 'WebOS.jpg', type: 'file', path: '/Рабочий стол', parentPath: '/Рабочий стол', content: 'Base64 image...', isDeleted: false, icon: 'fas fa-file-image' }
             ];
@@ -116,15 +116,18 @@ async function sendToRecycleBin(id) {
     const store = getTransaction('readwrite');
     const request = store.get(id);
 
-    request.onsuccess = (e) => {
-        const item = e.target.result;
-        if (item) {
-            item.isDeleted = true;
-            item.deletedAt = Date.now();
-            store.put(item);
-            console.log(`Файл ${item.name} отправлен в корзину.`);
-        }
-    };
+    return new Promise((resolve) => {
+        request.onsuccess = (e) => {
+            const item = e.target.result;
+            if (item) {
+                item.isDeleted = true;
+                item.deletedAt = Date.now();
+                store.put(item);
+                console.log(`Файл ${item.name} отправлен в корзину.`);
+            }
+            store.transaction.oncomplete = resolve;
+        };
+    });
 }
 
 async function restoreFromRecycleBin(id) {
@@ -132,15 +135,18 @@ async function restoreFromRecycleBin(id) {
     const store = getTransaction('readwrite');
     const request = store.get(id);
 
-    request.onsuccess = (e) => {
-        const item = e.target.result;
-        if (item && item.isDeleted) {
-            item.isDeleted = false;
-            delete item.deletedAt;
-            store.put(item);
-            console.log(`Файл ${item.name} восстановлен.`);
-        }
-    };
+    return new Promise((resolve) => {
+        request.onsuccess = (e) => {
+            const item = e.target.result;
+            if (item && item.isDeleted) {
+                item.isDeleted = false;
+                delete item.deletedAt;
+                store.put(item);
+                console.log(`Файл ${item.name} восстановлен.`);
+            }
+            store.transaction.oncomplete = resolve;
+        };
+    });
 }
 
 async function deletePermanently(id) {
@@ -157,19 +163,25 @@ async function renameItem(id, newName) {
     const store = getTransaction('readwrite');
     const request = store.get(id);
 
-    request.onsuccess = (e) => {
-        const item = e.target.result;
-        if (item) {
-            item.name = newName;
-            store.put(item);
-            console.log(`Файл переименован в ${newName}.`);
-        }
-    };
+    return new Promise((resolve) => {
+        request.onsuccess = (e) => {
+            const item = e.target.result;
+            if (item) {
+                item.name = newName;
+                store.put(item);
+                console.log(`Файл переименован в ${newName}.`);
+            }
+            store.transaction.oncomplete = resolve;
+        };
+    });
 }
 
-// =======================
-// WINDOWS MANAGER (Управление окнами, Drag & Resize)
-// =======================
+
+/**
+ * =================================================================
+ * 2. Windows Manager (Управление окнами, Drag & Resize, Win Key)
+ * =================================================================
+ */
 
 window.activeWindows = {};
 window.windowZIndex = 100;
@@ -181,28 +193,64 @@ let resizeItem = null;
 let resizeDir = '';
 const MIN_WIDTH = 300;
 const MIN_HEIGHT = 200;
+let isStartMenuOpen = false;
 
 document.addEventListener('DOMContentLoaded', () => {
     const desktopElement = document.getElementById('desktop');
     if (desktopElement) {
         window.desktop = desktopElement;
         initFileSystem();
+        setupWinKeyHandler();
     }
+    // Глобальные слушатели для перетаскивания и изменения размера
+    document.addEventListener('mousemove', (e) => {
+        if (dragItem) doDrag(e);
+        if (resizeItem) doResize(e);
+    });
+    document.addEventListener('mouseup', (e) => {
+        if (dragItem) endDrag(e);
+        if (resizeItem) endResize(e);
+    });
 });
 
-// Добавляем слушатели для изменения размера и перетаскивания на уровне документа
-document.addEventListener('mousemove', (e) => {
-    if (dragItem) doDrag(e);
-    if (resizeItem) doResize(e);
-});
-document.addEventListener('mouseup', (e) => {
-    if (dragItem) endDrag(e);
-    if (resizeItem) endResize(e);
-});
+/** Обработчик нажатия клавиши Win */
+function setupWinKeyHandler() {
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Meta' || e.key === 'OS') {
+            e.preventDefault();
+            toggleStartMenu();
+        }
+    });
+}
+
+/** Переключение Меню Пуск */
+function toggleStartMenu() {
+    const startMenu = document.getElementById('start-menu');
+    const startButton = document.getElementById('start-button');
+    if (!startMenu || !startButton) return;
+
+    if (isStartMenuOpen) {
+        startMenu.style.transform = 'translateX(-50%) translateY(100%)';
+        startMenu.style.opacity = '0';
+        startButton.classList.remove('active');
+        setTimeout(() => { startMenu.style.display = 'none'; }, 300);
+    } else {
+        // Закрываем все контекстные меню перед открытием Пуск
+        document.querySelectorAll('.context-menu').forEach(menu => menu.style.display = 'none');
+        
+        startMenu.style.display = 'flex';
+        startMenu.offsetHeight; 
+        startMenu.style.transform = 'translateX(-50%) translateY(0)';
+        startMenu.style.opacity = '1';
+        startButton.classList.add('active');
+        const searchInput = document.getElementById('search-input-start');
+        if(searchInput) searchInput.focus();
+    }
+    isStartMenuOpen = !isStartMenuOpen;
+}
 
 
-// --- Drag Functions ---
-
+// --- Drag & Drop/Resize Functions (Оставлены как в предыдущих ответах) ---
 function startDrag(e, windowId) {
     e.preventDefault();
     const targetWindow = window.activeWindows[windowId];
@@ -221,7 +269,6 @@ function doDrag(e) {
     let newX = e.clientX - offset.x;
     let newY = e.clientY - offset.y;
 
-    // Ограничение по границам
     newX = Math.max(0, Math.min(newX, window.innerWidth - dragItem.offsetWidth));
     newY = Math.max(0, Math.min(newY, window.innerHeight - dragItem.offsetHeight - 48));
 
@@ -236,8 +283,6 @@ function endDrag() {
     }
 }
 
-// --- Resize Functions ---
-
 function startResize(e, windowId, direction) {
     e.preventDefault();
     const targetWindow = window.activeWindows[windowId];
@@ -247,7 +292,6 @@ function startResize(e, windowId, direction) {
     resizeDir = direction;
     activateWindow(windowId);
     
-    // Запоминаем начальные параметры для расчета
     resizeItem.startX = e.clientX;
     resizeItem.startY = e.clientY;
     resizeItem.startW = resizeItem.offsetWidth;
@@ -295,17 +339,16 @@ function endResize() {
     }
 }
 
-// --- Window Management Functions (open, activate, close, minimize, toggle, maximize) ---
-// (Оставлены как в предыдущем ответе, но используем глобальные функции Drag/Resize)
+// --- Window Management Functions ---
 
 function openAppWindow(appName, appUrl) {
-    if (window.activeWindows[appName]) {
-        activateWindow(appName);
+    const windowId = appName.replace(/\s/g, ''); 
+    if (window.activeWindows[windowId]) {
+        activateWindow(windowId);
         return;
     }
 
     window.windowZIndex++;
-    const windowId = appName.replace(/\s/g, ''); // Уникальный ID без пробелов
     const initialX = 100 + (Object.keys(window.activeWindows).length % 5) * 20;
     const initialY = 50 + (Object.keys(window.activeWindows).length % 5) * 20;
     
@@ -353,18 +396,16 @@ function openAppWindow(appName, appUrl) {
     
     newWindow.addEventListener('mousedown', () => activateWindow(windowId));
     
+    // Создаем иконку на панели задач, если её там еще нет (для запуска из меню)
     const taskbarApps = document.getElementById('taskbar-apps');
-    if (taskbarApps) {
+    if (taskbarApps && !document.getElementById(`taskbar-icon-${windowId}`)) {
         const taskIcon = document.createElement('div');
         taskIcon.id = `taskbar-icon-${windowId}`;
         taskIcon.className = 'taskbar-icon';
         taskIcon.title = appName;
         taskIcon.innerHTML = `<i class="${icon}"></i>`;
         taskIcon.onclick = () => toggleWindow(windowId);
-        // Добавляем иконку, если её нет (например, если приложение открыто из меню Пуск)
-        if (!document.getElementById(`taskbar-icon-${windowId}`)) {
-            taskbarApps.appendChild(taskIcon);
-        }
+        taskbarApps.appendChild(taskIcon);
     }
     
     activateWindow(windowId);
@@ -397,6 +438,9 @@ function closeWindow(windowId) {
         
         const remaining = Object.keys(window.activeWindows);
         if (remaining.length > 0) activateWindow(remaining[remaining.length - 1]);
+        
+        // Пересоздаем иконки панели задач, чтобы вернуть закрепленные
+        window.initializeTaskbarIcons();
     }
 }
 
@@ -448,6 +492,5 @@ function maximizeWindow(windowId) {
     }
     win.maximized = !win.maximized;
     activateWindow(windowId);
-    // Удаляем transition после анимации
     setTimeout(() => { win.element.style.transition = ''; }, 200);
 }
