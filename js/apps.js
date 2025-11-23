@@ -1,17 +1,4 @@
-// js/apps.js
-
-/**
- * Определения приложений для Windows 11 WebOS.
- * Этот объект используется system.js для создания окон и иконок на панели задач.
- *
- * Формат:
- * 'Имя Приложения': {
- * url: 'apps/имя_файла.html',
- * icon: 'FontAwesome_Class',
- * desktop: true, // Добавлять ли иконку на рабочий стол по умолчанию
- * taskbar: true  // Добавлять ли иконку на панель задач по умолчанию
- * }
- */
+// js/apps.js - Расширенный манифест приложений и логика создания иконок
 window.APP_MANIFEST = {
     'File Explorer': {
         url: 'apps/explorer.html',
@@ -40,30 +27,46 @@ window.APP_MANIFEST = {
     'Recycle Bin': {
         url: 'apps/recycle-bin.html',
         icon: 'fas fa-trash',
-        desktop: true, // Иконка на рабочем столе
+        desktop: true,
         taskbar: false
     },
+    'Settings': {
+        url: 'apps/settings.html',
+        icon: 'fas fa-cog',
+        desktop: false,
+        taskbar: true
+    },
+    // --- Приложения из магазина (для динамической установки) ---
     'VS Code': {
-        url: 'apps/vscode.html', // Нужно создать этот файл
+        url: 'apps/vscode.html',
         icon: 'fas fa-code',
         desktop: false,
         taskbar: false
     },
-    'Settings': {
-        url: 'apps/settings.html', // Нужно создать этот файл
-        icon: 'fas fa-cog',
+    'Spotify': {
+        url: 'apps/spotify.html',
+        icon: 'fab fa-spotify',
+        desktop: false,
+        taskbar: false
+    },
+    'WhatsApp': {
+        url: 'apps/whatsapp.html',
+        icon: 'fab fa-whatsapp',
         desktop: false,
         taskbar: false
     }
 };
 
 /**
- * Функция для создания иконок рабочего стола на основе APP_MANIFEST.
- * Вызывается из desktop.html
+ * Создание иконок рабочего стола
  */
 function initializeDesktopIcons() {
     const desktop = document.getElementById('desktop');
     if (!desktop) return;
+    
+    // Удаляем старые иконки, чтобы избежать дублирования
+    const existingIcons = desktop.querySelectorAll('.desktop-icon');
+    existingIcons.forEach(icon => icon.remove());
 
     for (const appName in window.APP_MANIFEST) {
         const app = window.APP_MANIFEST[appName];
@@ -71,6 +74,7 @@ function initializeDesktopIcons() {
             const iconElement = document.createElement('div');
             iconElement.className = 'desktop-icon';
             iconElement.title = appName;
+            // Используем parent.openAppWindow, так как эта функция находится в system.js
             iconElement.onclick = () => parent.openAppWindow(appName, app.url);
             iconElement.innerHTML = `
                 <i class="${app.icon}"></i>
@@ -82,18 +86,25 @@ function initializeDesktopIcons() {
 }
 
 /**
- * Функция для создания иконок на панели задач на основе APP_MANIFEST.
- * Вызывается из desktop.html
+ * Создание иконок на панели задач (Taskbar)
  */
 function initializeTaskbarIcons() {
     const taskbarApps = document.getElementById('taskbar-apps');
     if (!taskbarApps) return;
     
+    // Удаляем только закрепленные иконки, открытые окна сохраняют свои иконки
+    const existingTaskbarIcons = taskbarApps.querySelectorAll('.taskbar-icon:not(.active-app-icon):not(#start-button)');
+    existingTaskbarIcons.forEach(icon => icon.remove());
+
+
     for (const appName in window.APP_MANIFEST) {
         const app = window.APP_MANIFEST[appName];
-        if (app.taskbar) {
+        const windowId = appName.replace(/\s/g, '');
+        
+        // Если приложение закреплено (taskbar: true) и еще не открыто как окно
+        if (app.taskbar && !parent.document.getElementById(`taskbar-icon-${windowId}`)) { 
             const iconElement = document.createElement('div');
-            iconElement.id = `taskbar-icon-${appName.replace(/\s/g, '')}`;
+            iconElement.id = `taskbar-icon-${windowId}`;
             iconElement.className = 'taskbar-icon';
             iconElement.title = appName;
             iconElement.onclick = () => parent.openAppWindow(appName, app.url);
