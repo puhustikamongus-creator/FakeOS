@@ -1,0 +1,219 @@
+/* css/main.css */
+
+/* === ГЛОБАЛЬНЫЕ СТИЛИ И ПЕРЕМЕННЫЕ === */
+:root {
+    --win11-blue: #0078D4;
+    --taskbar-bg: rgba(26, 26, 26, 0.7);
+    --start-menu-bg: rgba(30, 30, 30, 0.9);
+    --acrylic-blur: blur(30px); /* Сильный акриловый блюр */
+    --window-bg: rgba(32, 32, 32, 0.85); /* Полупрозрачный фон окна */
+    --text-color: #f0f0f0;
+    --shadow-color: rgba(0, 0, 0, 0.6);
+    --wallpaper: url('https://upload.wikimedia.org/wikipedia/commons/e/e0/Windows_11_Default_Wallpaper_-_Dark.png');
+}
+
+/* === DARK THEME (По умолчанию) === */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+body, html {
+    height: 100%;
+    overflow: hidden;
+    background-color: #1c1c1c;
+    color: var(--text-color);
+}
+
+/* === ЭКРАН ВХОДА (index.html) === */
+.lock-screen, .login-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--wallpaper) no-repeat center center fixed;
+    background-size: cover;
+    color: white;
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+    transition: opacity 0.5s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.lock-time-date {
+    margin-top: auto;
+    margin-bottom: 5vh;
+    font-weight: 300;
+}
+
+.lock-time-date h1 { font-size: 8rem; }
+.lock-time-date p { font-size: 2rem; }
+
+.login-form-container {
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: var(--acrylic-blur);
+    -webkit-backdrop-filter: var(--acrylic-blur);
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px var(--shadow-color);
+    margin-top: 20vh;
+}
+/* ... (Стили для аватара, input и кнопки входа) ... */
+
+
+/* === РАБОЧИЙ СТОЛ (desktop.html) === */
+#desktop {
+    width: 100%;
+    height: 100%;
+    background: var(--wallpaper) no-repeat center center fixed;
+    background-size: cover;
+}
+
+/* Панель задач */
+#taskbar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 48px;
+    background: var(--taskbar-bg);
+    backdrop-filter: var(--acrylic-blur);
+    -webkit-backdrop-filter: var(--acrylic-blur);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 5px;
+    z-index: 50;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#taskbar-center {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    height: 100%;
+    padding: 0 4px;
+}
+
+.taskbar-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    margin: 0 2px;
+}
+
+.taskbar-icon:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.taskbar-icon.active {
+    background-color: rgba(255, 255, 255, 0.2);
+    box-shadow: 0 0 0 2px var(--win11-blue) inset;
+}
+
+/* Иконка Windows 11 SVG (Адаптация из предыдущего ответа) */
+#start-button-icon {
+    width: 20px;
+    height: 20px;
+}
+/* ... (Стили для SVG-иконки Windows 11) ... */
+
+/* === ОКНА ПРИЛОЖЕНИЙ (Общие стили) === */
+.app-window {
+    position: absolute;
+    width: 800px;
+    height: 500px;
+    background: var(--window-bg);
+    border-radius: 8px;
+    box-shadow: 0 10px 40px var(--shadow-color);
+    overflow: hidden;
+    min-width: 300px;
+    min-height: 200px;
+    transition: transform 0.2s, box-shadow 0.2s;
+    resize: both; /* Для изменения размера */
+}
+
+.app-window.active {
+    box-shadow: 0 15px 50px var(--shadow-color), 0 0 0 1px var(--win11-blue);
+}
+
+.titlebar {
+    height: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-left: 10px;
+    background: rgba(36, 36, 36, 0.85);
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    cursor: grab;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+
+.titlebar i { margin-right: 5px; color: var(--win11-blue); }
+
+.controls { display: flex; height: 100%; }
+
+.control-btn {
+    width: 44px;
+    height: 100%;
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: background-color 0.15s;
+}
+
+.control-btn:hover { background-color: rgba(255, 255, 255, 0.1); }
+.control-btn.close:hover { background-color: #E81123; color: white; }
+
+.window-content-wrapper {
+    height: calc(100% - 32px);
+}
+
+.app-iframe {
+    width: 100%;
+    height: 100%;
+    background: var(--window-bg); /* Фон для видимости акрила */
+}
+
+/* === МЕНЮ ПУСК === */
+#start-menu {
+    /* ... (Стили Меню Пуск с акриловым блюром) ... */
+}
+
+/* css/main.css (Дополнительные стили для Resize) */
+/* --- Ресайзеры окон --- */
+.resize-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    opacity: 0; /* Скрываем ручки, но оставляем область для захвата */
+    z-index: 10000;
+}
+
+.resize-handle.n { top: -5px; left: 5px; right: 5px; height: 10px; cursor: ns-resize; }
+.resize-handle.s { bottom: -5px; left: 5px; right: 5px; height: 10px; cursor: ns-resize; }
+.resize-handle.e { right: -5px; top: 5px; bottom: 5px; width: 10px; cursor: ew-resize; }
+.resize-handle.w { left: -5px; top: 5px; bottom: 5px; width: 10px; cursor: ew-resize; }
+
+.resize-handle.nw { top: -5px; left: -5px; cursor: nwse-resize; }
+.resize-handle.ne { top: -5px; right: -5px; cursor: nesw-resize; }
+.resize-handle.sw { bottom: -5px; left: -5px; cursor: nesw-resize; }
+.resize-handle.se { bottom: -5px; right: -5px; cursor: nwse-resize; }
+}
