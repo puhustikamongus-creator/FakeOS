@@ -2,97 +2,197 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Windows 11 WebOS - Desktop</title>
+    <title>Windows 11 WebOS</title>
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="js/apps.js"></script>
+    
+    <script src="js/apps.js"></script> 
     <script src="js/system.js"></script>
+
+    <style>
+        /* Здесь должны быть ваши стили для start-menu (из предыдущего ответа) */
+        /* ... Стили ... */
+        #start-menu {
+            position: fixed;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100%); 
+            opacity: 0;
+            transition: opacity 0.3s, transform 0.3s;
+            width: 500px;
+            height: 600px;
+            background: var(--start-menu-bg);
+            backdrop-filter: var(--acrylic-blur);
+            -webkit-backdrop-filter: var(--acrylic-blur);
+            border-radius: 12px;
+            box-shadow: 0 10px 40px var(--shadow-color);
+            padding: 10px;
+            display: none; 
+            flex-direction: column;
+            z-index: 60;
+        }
+        .pinned-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            padding: 10px 0;
+        }
+        .pinned-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .pinned-item:hover { background-color: rgba(255, 255, 255, 0.15); }
+        .pinned-item i { font-size: 1.5rem; margin-bottom: 5px; }
+        
+        .search-section { padding: 10px 0; }
+        #search-input-start {
+            width: 100%;
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.05);
+            color: white;
+        }
+        
+        #start-menu-footer {
+            margin-top: auto;
+            padding-top: 10px;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .search-result-item {
+             background-color: rgba(255, 255, 255, 0.05);
+             margin-bottom: 5px;
+             text-align: left;
+             padding: 10px;
+             border-radius: 4px;
+        }
+        .search-result-item span { width: 100%; }
+
+    </style>
 </head>
 <body>
-
-    <svg width="0" height="0">
-        <defs>
-            <linearGradient id="win11-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" style="stop-color:#0080FF;stop-opacity:1" />
-                <stop offset="100%" style="stop-color:#00FFFF;stop-opacity:1" />
-            </linearGradient>
-            <filter id="shadow">
-                <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0, 0, 0, 0.5)"/>
-            </filter>
-        </defs>
-    </svg>
-
     <div id="desktop">
-        <div class="desktop-icon" onclick="openAppWindow('File Explorer', 'apps/explorer.html')"><i class="fas fa-desktop"></i><span>Этот компьютер</span></div>
-        <div class="desktop-icon" onclick="openAppWindow('Recycle Bin', 'apps/recycle-bin.html')"><i class="fas fa-trash"></i><span>Корзина</span></div>
-        
-        <div id="start-menu">
-            <div id="start-menu-footer">
-                <button onclick="window.location.href='index.html'"><i class="fas fa-power-off"></i> Выход</button>
-            </div>
-        </div>
-        
-        <div id="taskbar">
-            <div id="taskbar-left" class="taskbar-section">
-                <div id="start-button" class="taskbar-icon" onclick="toggleStartMenu()">
-                    <svg id="start-button-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="0" y="0" width="24" height="24" fill="none" filter="url(#shadow)"/>
-                        <rect class="square" x="2.5" y="2.5" width="9" height="9" rx="1.5" ry="1.5" fill="url(#win11-gradient)"/>
-                        <rect class="square" x="12.5" y="2.5" width="9" height="9" rx="1.5" ry="1.5" fill="url(#win11-gradient)"/>
-                        <rect class="square" x="2.5" y="12.5" width="9" height="9" rx="1.5" ry="1.5" fill="url(#win11-gradient)"/>
-                        <rect class="square" x="12.5" y="12.5" width="9" height="9" rx="1.5" ry="1.5" fill="url(#win11-gradient)"/>
-                    </svg>
-                </div>
-            </div>
-
-            <div id="taskbar-center">
-                <div id="taskbar-apps">
-                    <div id="taskbar-icon-explorer" class="taskbar-icon" onclick="openAppWindow('File Explorer', 'apps/explorer.html')"><i class="fas fa-folder"></i></div>
-                    <div id="taskbar-icon-browser" class="taskbar-icon" onclick="openAppWindow('Edge Browser', 'apps/browser.html')"><i class="fab fa-edge"></i></div>
-                    <div id="taskbar-icon-telegram" class="taskbar-icon" onclick="openAppWindow('Telegram', 'apps/telegram.html')"><i class="fab fa-telegram-plane"></i></div>
-                    </div>
-            </div>
-
-            <div id="taskbar-right">
-                <div class="taskbar-info">
-                    <span id="taskbar-time"></span>
-                    <span id="taskbar-date"></span>
-                </div>
-            </div>
         </div>
 
+    <div id="start-menu">
+        <div class="search-section">
+            <input type="text" id="search-input-start" placeholder="Поиск приложений, настроек и документов">
+            <div id="search-results"></div>
+        </div>
+        
+        <div class="pinned-section">
+            <h3>Закреплено</h3>
+            <div class="pinned-grid">
+                <div class="pinned-item" onclick="toggleStartMenu(); openAppWindow('Edge Browser', 'apps/browser.html')">
+                    <i class="fab fa-edge" style="color: #0078D4;"></i><span>Edge</span>
+                </div>
+                <div class="pinned-item" onclick="toggleStartMenu(); openAppWindow('File Explorer', 'apps/explorer.html')">
+                    <i class="fas fa-folder" style="color: #FFC107;"></i><span>Проводник</span>
+                </div>
+                <div class="pinned-item" onclick="toggleStartMenu(); openAppWindow('Telegram', 'apps/telegram.html')">
+                    <i class="fab fa-telegram-plane" style="color: #0088cc;"></i><span>Telegram</span>
+                </div>
+                <div class="pinned-item" onclick="toggleStartMenu(); openAppWindow('Microsoft Store', 'apps/store.html')">
+                    <i class="fas fa-store" style="color: #0078D4;"></i><span>Store</span>
+                </div>
+                <div class="pinned-item" onclick="toggleStartMenu(); openAppWindow('Settings', 'apps/settings.html')">
+                    <i class="fas fa-cog" style="color: #777;"></i><span>Настройки</span>
+                </div>
+                </div>
+        </div>
+        
+        <div class="recommended-section">
+            <h3>Рекомендовано</h3>
+        </div>
+        
+        <div id="start-menu-footer">
+            <div class="user-profile">
+                <div class="avatar"></div>
+                <span>User Name</span>
+            </div>
+            <button onclick="window.location.href='index.html'" style="background: none; border: none; color: white; cursor: pointer;"><i class="fas fa-power-off"></i></button>
+        </div>
+    </div>
+    
+    <div id="taskbar">
+        <div id="taskbar-left">
+            <div id="start-button" class="taskbar-icon" onclick="toggleStartMenu()"><i class="fab fa-windows"></i></div>
+            <div class="taskbar-icon"><i class="fas fa-search"></i></div>
+        </div>
+        <div id="taskbar-center">
+            <div id="taskbar-apps">
+                </div>
+        </div>
+        <div id="taskbar-right">
+            <div id="taskbar-time"></div>
+            <div class="taskbar-icon"><i class="fas fa-volume-up"></i></div>
+            <div class="taskbar-icon"><i class="fas fa-wifi"></i></div>
+        </div>
     </div>
 
     <script>
-        // Инициализация window.desktop в system.js
-        window.desktop = document.getElementById('desktop');
+        // Запуск IndexedDB
+        initFileSystem(); 
         
-        window.appIcons = {
-            'File Explorer': 'fas fa-folder',
-            'Edge Browser': 'fab fa-edge',
-            'Telegram': 'fab fa-telegram-plane',
-            'Recycle Bin': 'fas fa-trash'
-        };
+        // Инициализация иконок
+        initializeDesktopIcons(); 
+        initializeTaskbarIcons(); 
+        
+        // Обновление времени
+        function updateTaskbarTime() {
+            const now = new Date();
+            const time = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            const date = now.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+            document.getElementById('taskbar-time').innerHTML = `${time}<br>${date}`;
+        }
+        setInterval(updateTaskbarTime, 1000);
+        updateTaskbarTime();
 
-// Запуск IndexedDB при загрузке рабочего стола
-    initFileSystem(); 
-    
-    // Инициализация иконок
-    initializeDesktopIcons(); // Теперь иконки создаются динамически
-    initializeTaskbarIcons(); 
-    
-    // Удаляем старые, статичные иконки из HTML, они теперь создаются JS
-    // (Убедитесь, что вы удалили старые статические иконки из тела desktop.html)
 
-    function toggleStartMenu() {
-        // ... (Логика открытия/закрытия меню Пуск) ...
-    }
-    
-    function updateTaskbarTime() {
-        // ... (Логика обновления времени на Taskbar) ...
-    }
-    setInterval(updateTaskbarTime, 1000);
-</script>
+        // Функция поиска (базовая имитация)
+        document.getElementById('search-input-start').addEventListener('input', function(e) {
+            const query = e.target.value.toLowerCase();
+            const results = document.getElementById('search-results');
+            const pinnedSection = document.querySelector('.pinned-section');
+
+            if (query.length > 1) {
+                pinnedSection.style.display = 'none';
+                results.style.display = 'block';
+                results.innerHTML = '';
+                
+                let found = 0;
+                for (const appName in window.APP_MANIFEST) {
+                    if (appName.toLowerCase().includes(query)) {
+                        const app = window.APP_MANIFEST[appName];
+                        const resultItem = document.createElement('div');
+                        resultItem.className = 'search-result-item';
+                        resultItem.onclick = () => {
+                            toggleStartMenu();
+                            openAppWindow(appName, app.url);
+                        };
+                        resultItem.innerHTML = `<i class="${app.icon}" style="margin-right: 10px;"></i><span>${appName}</span>`;
+                        results.appendChild(resultItem);
+                        found++;
+                        if (found > 8) break;
+                    }
+                }
+                if (found === 0) {
+                    results.innerHTML = '<p style="padding: 10px; font-size: 0.9rem;">Совпадений не найдено.</p>';
+                }
+            } else {
+                pinnedSection.style.display = 'block';
+                results.style.display = 'none';
+                results.innerHTML = '';
+            }
+        });
+    </script>
 </body>
 </html>
