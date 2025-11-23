@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>File Explorer</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .explorer-layout {
+            display: flex;
+            height: 100%;
+            background-color: #2e2e2e;
+        }
+        .sidebar { 
+            width: 200px; 
+            padding: 10px 0; 
+            border-right: 1px solid rgba(255, 255, 255, 0.1);
+            background-color: #242424;
+            flex-shrink: 0;
+        }
+        .sidebar-item { padding: 8px 15px; cursor: pointer; transition: background-color 0.1s; }
+        .sidebar-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; }
+        .toolbar { 
+            height: 40px; 
+            background-color: #333; 
+            display: flex; 
+            align-items: center; 
+            padding: 0 10px; 
+            font-size: 0.9rem;
+        }
+        #file-view { 
+            flex-grow: 1; 
+            padding: 10px; 
+            display: flex; 
+            flex-wrap: wrap; 
+            align-content: flex-start;
+            overflow-y: auto; 
+        }
+        .file-icon {
+            width: 100px;
+            height: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin: 10px;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.1s;
+        }
+        .file-icon:hover, .file-icon.selected { background-color: rgba(255, 255, 255, 0.1); }
+        .file-icon i { font-size: 3rem; color: #FFC107; margin-bottom: 5px; }
+        .file-icon span { font-size: 0.75rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; width: 90%; }
+        
+        #context-menu {
+            position: absolute;
+            background: var(--start-menu-bg);
+            backdrop-filter: var(--acrylic-blur);
+            -webkit-backdrop-filter: var(--acrylic-blur);
+            border-radius: 6px;
+            box-shadow: 0 4px 15px var(--shadow-color);
+            padding: 5px 0;
+            display: none;
+            z-index: 10000;
+        }
+        .context-menu-item { padding: 8px 20px; cursor: pointer; font-size: 0.85rem; transition: background-color 0.1s; display: flex; align-items: center; }
+        .context-menu-item:hover { background-color: var(--win11-blue); }
+        .context-menu-item i { margin-right: 10px; width: 15px; }
+    </style>
+</head>
+<body>
+    <div class="explorer-layout">
+        <div class="sidebar">
+            <div class="sidebar-item" data-path="/Рабочий стол"><i class="fas fa-desktop"></i> Рабочий стол</div>
+            <div class="sidebar-item" data-path="/Документы"><i class="fas fa-file"></i> Документы</div>
+            <div class="sidebar-item" onclick="parent.openAppWindow('Recycle Bin', 'recycle-bin.html')"><i class="fas fa-trash"></i> Корзина</div>
+        </div>
+        <div class="main-content">
+            <div class="toolbar" id="toolbar">
+                <div id="address-bar">/Рабочий стол</div>
+            </div>
+            <div id="file-view">
+                </div>
+        </div>
+    </div>
+    
+    <div id="context-menu">
+        <div class="context-menu-item" onclick="createNewItem('folder')"><i class="fas fa-folder-plus"></i> Создать папку</div>
+        <div class="context-menu-item" onclick="createNewItem('file')"><i class="fas fa-file-alt"></i> Создать файл</div>
+        <hr style="border-color: rgba(255, 255, 255, 0.1);">
+        <div class="context-menu-item action-delete" onclick="deleteSelectedItem()"><i class="fas fa-trash-alt"></i> Удалить</div>
+        <div class="context-menu-item action-rename" onclick="renameSelectedItem()"><i class="fas fa-edit"></i> Переименовать</div>
+    </div>
+
+    <script>
+        const fileView = document.getElementById('file-view');
+        const addressBar = document.getElementById('address-bar');
+        const contextMenu = document.getElementById('context-menu');
+        let currentPath = '/Рабочий стол';
+        let selectedItemId = null;
+        let selectedItemElement = null;
+
+        // --- Core Functions ---
+
+        async function loadFiles(path) {
+            currentPath = path;
+            addressBar.textContent = path;
+            fileView.innerHTML = '';
+            selectedItemId = null;
+            selectedItemElement = null;
+
+            const items = await parent.getItemsByPath(path);
+            
+            items.forEach(item => {
+                const element = document.createElement('div');
+                element.className = 'file-icon';
+                element.setAttribute('data-id', item.id);
+                element.setAttribute('data-type', item.type);
+                element.innerHTML = `<i class="${item.icon}"></i><span>${item.name}</span>`;
+                
+                element.addEventListener('click', (e) => {
+                    selectItem(element, item.id);
+                    e.stopPropagation();
+                });
+                
+                element.addEventListener('dblclick', () => {
+                    if (item.type === 'folder') {
+                        loadFiles(currentPath + '/' + item.name);
+                    } else {
+                        alert(`Открыт файл: ${item.name}\nСодержимое: ${item.content}`);
+                    }
+                });
+
+                element.addEventListener('contextmenu', (e) => showContextMenu(e, element, item.id));
+
+                fileView.appendChild(element);
+            });
+        }
+
+        function selectItem(element, id) {
+            document.querySelectorAll('.file-icon').forEach(el => el.classList.remove('selected'));
+            element.classList.add('selected');
+            selectedItemId = id;
+            selectedItemElement = element;
+            hideContextMenu();
+        }
+
+        // Клик по пустому месту снимает выделение
+        fileView.addEventListener('click', () => {
+            document.querySelectorAll('.file-icon').forEach(el => el.classList.remove('selected'));
+            selectedItemId = null;
+            selectedItemElement = null;
+            hideContextMenu();
+        });
+
+
+        // --- Context Menu Functions ---
+
+        function showContextMenu(e, element, id) {
+            e.preventDefault();
+            selectItem(element, id); // Выделяем элемент
+
+            contextMenu.style.top = `${e.clientY}px`;
+            contextMenu.style.left = `${e.clientX}px`;
+            contextMenu.style.display = 'block';
+
+            // Скрываем опции, не применимые к пустому месту или к файлу
+            const isFile = element && element.getAttribute('data-type') !== 'folder';
+            document.querySelectorAll('.action-delete, .action-rename').forEach(el => {
+                el.style.display = element ? 'flex' : 'none';
+            });
+            
+            e.stopPropagation(); // Останавливаем всплытие, чтобы не закрыть меню сразу
+        }
+
+        function hideContextMenu() {
+            contextMenu.style.display = 'none';
+        }
+
+        document.addEventListener('click', hideContextMenu);
+        
+        // --- File Actions ---
+
+        function createNewItem(type) {
+            hideContextMenu();
+            const name = prompt(`Введите имя для новой ${type === 'folder' ? 'папки' : 'файла'}:`);
+            if (name) {
+                const writeStore = parent.getTransaction('readwrite');
+                const newItem = {
+                    name: name,
+                    type: type,
+                    path: currentPath,
+                    parentPath: currentPath,
+                    content: type === 'file' ? '' : null,
+                    isDeleted: false,
+                    icon: type === 'folder' ? 'fas fa-folder' : 'fas fa-file-alt'
+                };
+                writeStore.add(newItem);
+                writeStore.transaction.oncomplete = () => loadFiles(currentPath);
+            }
+        }
+
+        function deleteSelectedItem() {
+            if (selectedItemId) {
+                if (confirm('Вы уверены, что хотите переместить этот элемент в Корзину?')) {
+                    parent.sendToRecycleBin(selectedItemId)
+                        .then(() => loadFiles(currentPath));
+                }
+            }
+        }
+
+        function renameSelectedItem() {
+            if (selectedItemId && selectedItemElement) {
+                const oldName = selectedItemElement.querySelector('span').textContent;
+                const newName = prompt('Введите новое имя:', oldName);
+                if (newName && newName !== oldName) {
+                    parent.renameItem(selectedItemId, newName)
+                        .then(() => loadFiles(currentPath));
+                }
+            }
+        }
+
+
+        // --- Initialization ---
+
+        document.querySelectorAll('.sidebar-item').forEach(item => {
+            item.addEventListener('click', () => {
+                const path = item.getAttribute('data-path');
+                if (path) loadFiles(path);
+            });
+        });
+        
+        loadFiles(currentPath);
+    </script>
+</body>
+</html>

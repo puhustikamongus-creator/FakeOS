@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Корзина</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .recycle-toolbar { 
+            display: flex; 
+            padding: 10px; 
+            gap: 10px;
+            background-color: #333;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .recycle-toolbar button {
+            padding: 8px 15px;
+            border-radius: 4px;
+            background-color: var(--win11-blue);
+            color: white;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .recycle-toolbar button:hover { background-color: #005A9E; }
+
+        #recycle-view { padding: 10px; overflow-y: auto; height: calc(100% - 60px); }
+        .recycle-item {
+            display: flex;
+            align-items: center;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            background-color: rgba(255, 255, 255, 0.05);
+            cursor: pointer;
+        }
+        .recycle-item i { margin-right: 10px; color: #aaa; }
+        .recycle-item:hover { background-color: rgba(255, 255, 255, 0.1); }
+    </style>
+</head>
+<body>
+    <div class="recycle-toolbar">
+        <button onclick="restoreSelected()">Восстановить</button>
+        <button onclick="deleteSelected()">Удалить навсегда</button>
+        <button onclick="clearRecycleBin()">Очистить корзину</button>
+    </div>
+    <div id="recycle-view">
+        <p style="text-align: center; margin-top: 20px;">Корзина пуста.</p>
+    </div>
+
+    <script>
+        const recycleView = document.getElementById('recycle-view');
+        let deletedItems = [];
+        let selectedItemId = null;
+
+        async function loadRecycleBin() {
+            deletedItems = await parent.getAllDeletedItems();
+            recycleView.innerHTML = '';
+
+            if (deletedItems.length === 0) {
+                recycleView.innerHTML = '<p style="text-align: center; margin-top: 20px;">Корзина пуста.</p>';
+                return;
+            }
+
+            deletedItems.forEach(item => {
+                const element = document.createElement('div');
+                element.className = 'recycle-item';
+                element.setAttribute('data-id', item.id);
+                element.innerHTML = `<i class="${item.icon}"></i> <span>${item.name}</span> (Исходный путь: ${item.path || '/'})`;
+                
+                element.addEventListener('click', () => {
+                    selectItem(element, item.id);
+                });
+
+                recycleView.appendChild(element);
+            });
+        }
+
+        function selectItem(element, id) {
+            document.querySelectorAll('.recycle-item').forEach(el => el.style.border = 'none');
+            element.style.border = `1px solid ${parent.document.documentElement.style.getPropertyValue('--win11-blue')}`;
+            selectedItemId = id;
+        }
+
+        function restoreSelected() {
+            if (selectedItemId) {
+                parent.restoreFromRecycleBin(selectedItemId)
+                    .then(() => loadRecycleBin());
+                selectedItemId = null;
+            } else {
+                alert('Выберите элемент для восстановления.');
+            }
+        }
+
+        function deleteSelected() {
+            if (selectedItemId) {
+                if (confirm('Вы уверены, что хотите удалить этот элемент навсегда? Это действие необратимо.')) {
+                    parent.deletePermanently(selectedItemId)
+                        .then(() => loadRecycleBin());
+                    selectedItemId = null;
+                }
+            } else {
+                alert('Выберите элемент для удаления.');
+            }
+        }
+
+        async function clearRecycleBin() {
+            if (confirm(`Вы уверены, что хотите удалить ${deletedItems.length} элементов навсегда?`)) {
+                const deletePromises = deletedItems.map(item => parent.deletePermanently(item.id));
+                await Promise.all(deletePromises);
+                loadRecycleBin();
+            }
+        }
+        
+        loadRecycleBin();
+    </script>
+</body>
+</html>

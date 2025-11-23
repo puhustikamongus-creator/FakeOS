@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Microsoft Store</title>
+    <link rel="stylesheet" href="../css/main.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        .store-header {
+            padding: 20px;
+            font-size: 1.5rem;
+            font-weight: 600;
+            background-color: #333;
+        }
+        .store-grid {
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 20px;
+            overflow-y: auto;
+            height: calc(100% - 66px); /* 66px - высота хедера */
+        }
+        .app-card {
+            background-color: #444;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            padding: 15px;
+        }
+        .app-card i { font-size: 3rem; margin-bottom: 10px; }
+        .app-card h4 { margin-bottom: 15px; }
+        .install-btn {
+            background-color: var(--win11-blue);
+            color: white;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .install-btn:hover { background-color: #005A9E; }
+    </style>
+</head>
+<body>
+    <div class="store-header">
+        Магазин Microsoft
+    </div>
+    <div class="store-grid">
+        <div class="app-card" data-app="VS Code" data-icon="fas fa-code" data-url="apps/vscode.html">
+            <i class="fas fa-code" style="color: #007ACC;"></i>
+            <h4>VS Code</h4>
+            <p style="font-size: 0.8rem; color: #ccc;">Редактор кода для WebOS</p>
+            <button class="install-btn" onclick="installApp(this)">Установить</button>
+        </div>
+        <div class="app-card" data-app="Spotify" data-icon="fab fa-spotify" data-url="https://open.spotify.com">
+            <i class="fab fa-spotify" style="color: #1DB954;"></i>
+            <h4>Spotify</h4>
+            <p style="font-size: 0.8rem; color: #ccc;">Стриминг музыки</p>
+            <button class="install-btn" onclick="installApp(this)">Установить</button>
+        </div>
+        <div class="app-card" data-app="WhatsApp" data-icon="fab fa-whatsapp" data-url="https://web.whatsapp.com">
+            <i class="fab fa-whatsapp" style="color: #25D366;"></i>
+            <h4>WhatsApp</h4>
+            <p style="font-size: 0.8rem; color: #ccc;">Мессенджер</p>
+            <button class="install-btn" onclick="installApp(this)">Установить</button>
+        </div>
+        <div class="app-card" data-app="Discord" data-icon="fab fa-discord" data-url="https://discord.com/app">
+            <i class="fab fa-discord" style="color: #5865F2;"></i>
+            <h4>Discord</h4>
+            <p style="font-size: 0.8rem; color: #ccc;">Общение и сообщества</p>
+            <button class="install-btn" onclick="installApp(this)">Установить</button>
+        </div>
+        </div>
+
+    <script>
+        // Функция "установки" - добавляет приложение в манифест и на рабочий стол
+        function installApp(button) {
+            const card = button.closest('.app-card');
+            const appName = card.getAttribute('data-app');
+            const appIcon = card.getAttribute('data-icon');
+            const appUrl = card.getAttribute('data-url');
+
+            if (parent.APP_MANIFEST[appName]) {
+                alert(`${appName} уже установлен!`);
+                return;
+            }
+
+            // 1. Добавление в манифест (работает только для текущей сессии)
+            parent.APP_MANIFEST[appName] = {
+                url: appUrl,
+                icon: appIcon,
+                desktop: true,
+                taskbar: false // Изначально не закрепляем на панели задач
+            };
+
+            // 2. Обновление иконок на рабочем столе
+            parent.initializeDesktopIcons(); 
+
+            button.textContent = 'Установлено';
+            button.disabled = true;
+            button.style.backgroundColor = '#1DB954';
+            
+            alert(`${appName} успешно установлен! Иконка добавлена на рабочий стол.`);
+        }
+    </script>
+</body>
+</html>
