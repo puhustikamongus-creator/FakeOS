@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Windows 11 WebOS - Lock Screen</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body class="lock-screen">
+
+    <div class="lock-time-date">
+        <h1 id="time">19:00</h1>
+        <p id="date">Пятница, 22 Ноября 2025</p>
+    </div>
+
+    <div id="login-overlay" style="display: none;" class="login-screen">
+        <div class="login-form-container">
+            <div id="user-avatar" style="width: 80px; height: 80px; border-radius: 50%; background-color: #0078D4; margin: 0 auto 20px;"></div>
+            <h2>User</h2>
+            <input type="password" id="password-input" placeholder="Пароль" onkeydown="if(event.key === 'Enter') login()">
+            <button onclick="login()">Войти</button>
+        </div>
+    </div>
+
+    <script>
+        const lockScreen = document.querySelector('.lock-screen');
+        const loginOverlay = document.getElementById('login-overlay');
+
+        function updateDateTime() {
+            const now = new Date();
+            document.getElementById('time').textContent = now.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('date').textContent = now.toLocaleDateString('ru-RU', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+
+        // Клик на экран -> показ логина
+        lockScreen.addEventListener('click', () => {
+            lockScreen.classList.add('lock-hidden'); // CSS класс для плавного скрытия
+            loginOverlay.style.display = 'flex';
+            document.getElementById('password-input').focus();
+        }, { once: true }); // Слушатель сработает только один раз
+
+        function login() {
+            // Любой пароль, включая пустой, открывает систему
+            window.location.href = 'desktop.html'; 
+        }
+
+        updateDateTime();
+        setInterval(updateDateTime, 1000);
+    </script>
+</body>
+</html>
